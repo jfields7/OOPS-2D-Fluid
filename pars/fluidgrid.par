@@ -1,0 +1,13 @@
+[FluidGrid]
+DomainMinX = -3.0
+DomainMaxX =  3.0
+DomainMinY = -3.0
+DomainMaxY =  3.0
+GridSizeX = 101
+GridSizeY = 101
+Time = 10.0
+CFL = 0.15
+BoundaryLeft = LEFT_WALL
+BoundaryRight = RIGHT_WALL
+BoundaryDown = DOWN_WALL
+BoundaryUp = UP_WALL

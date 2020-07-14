@@ -1,0 +1,5 @@
+[FluidIC]
+InitialConditions = GAUSSIAN
+GaussianAmplitude = 1.0
+GaussianKappa = 1.0
+GaussianSigma = 0.5

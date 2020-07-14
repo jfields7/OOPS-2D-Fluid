@@ -1,0 +1,6 @@
+[FluidIO]
+PrintFrequency = 10
+OutputFrequency = 10
+GridFile = fluidgrid.par
+MethodFile = fluidmethod.par
+ICFile = fluidic.par

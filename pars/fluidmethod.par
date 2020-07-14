@@ -1,0 +1,4 @@
+[FluidMethod]
+Reconstruction = MINMOD
+EOS = FIXED
+RiemannSolver = HLLE
