@@ -597,8 +597,8 @@ void Fluid::applyGaussian(){
   for(unsigned int j = 0; j < ny; j++){
     for(unsigned int i = 0; i < nx; i++){
       unsigned int pp = grid->getIndex(i,j);
-      pos[0] = x[i];
-      pos[1] = y[j];
+      pos[0] = x[i] - params->getPositionX();
+      pos[1] = y[j] - params->getPositionY();
       metric->updateMetric(pos);
       // Calculate r. Right now, assume Cartesian coordinates.
       // FIXME: Generalize this.
@@ -634,7 +634,7 @@ void Fluid::applyShockTube1D(const unsigned int dir){
   auto points = grid->getPoints();
   const unsigned int otherdir = 1 - dir;
   double pos[2];
-  double center = 0.0;
+  double center = (dir == DIR_X) ? params->getPositionX() : params->getPositionY();
   double rho_left = 1.0;
   double rho_right = 1.0;
   double p_left = 1000.0;

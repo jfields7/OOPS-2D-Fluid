@@ -94,8 +94,7 @@
         "type":"enum",
         "value":[
           "UP_OUTFLOW",
-          "UP_WALL",
-          "UP_AXIS"
+          "UP_WALL"
         ],
         "default":"UP_OUTFLOW"
       },
