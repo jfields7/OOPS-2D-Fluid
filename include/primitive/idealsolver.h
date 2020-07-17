@@ -23,6 +23,7 @@ class IdealSolver : public PrimitiveSolver{
 
     double f(double x, double D, double tau, double Ssq);
     void fd(double& fx, double& dfx, double x, double D, double tau, double Ssq);
+    void fdd(double& fx, double& dfx, double& ddfx, double x, double D, double tau, double Ssq);
 
     double tol;
     unsigned int maxIterations;

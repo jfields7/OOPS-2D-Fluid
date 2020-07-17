@@ -112,7 +112,8 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
   qf_1 = t1 - sqrt_t2;  // The smaller root of f
   qf_2 = t1 + sqrt_t2;  // The larger root of f
   qf_max = t1;          // The location of the max of f
-  qg_2 = sqrt(beta_sq); // The larger root of g
+  //qg_2 = sqrt(beta_sq); // The larger root of g
+  qg_2 = 1.0;
   
   if(std::isnan(qg_2)){
     std::cout << "qg_2 is a nan.\n";
@@ -229,7 +230,10 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     // Newton solve.
 
     // As our initial guess for the root, take the midpoint of the bracket.
-    double qi = 0.5*(ql + qh);
+    //double qi = 0.5*(ql + qh);
+    // We have the function values already, so we estimate the root using
+    // false position instead.
+    double qi = (ql*f_at_qh - qh*f_at_ql)/(f_at_qh - f_at_ql);
     double q = qi;
 
     // Incorporate a little redundancy in the event things go bad.
@@ -240,37 +244,53 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     // Perform the Newton solve.
     double fq = 1.0;
     double dfq = 1.0;
+    double ddfq = 1.0;
     unsigned int count = 0;
+    int held = 0;
     while(fabs(fq) > tol && count < maxIterations){
       double oldq = q;
-      fd(fq, dfq, q, D, tau, Ssq);
-      q = q - fq/dfq;
+      //fd(fq, dfq, q, D, tau, Ssq);
+      //q = q - fq/dfq;
+      // Halley's method
+      fdd(fq, dfq, ddfq, q, D, tau, Ssq);
+      q = q - 2.0*fq*dfq/(2.0*dfq*dfq - fq*ddfq);
       // Check for convergence by ensuring that the new q is
-      // still inside the bounds. If not, apply a variant
-      // of the false position method. It's similar (but not
-      // identical) to the Illinois algorithm: for this
-      // particular function, multiplying the bound with the
-      // opposite sign by 0.5 every iteration seems to give
-      // better behavior than doing so only on iterations
-      // where our estimate lands on the same side twice.
+      // still inside the bounds. If not, apply the Illinois
+      // variant of the false position method.
       if(q > qh || q < ql){
         // Calculate the new root.
         if(fq*f_at_qh > 0){
-          double m = 0.5;
+          double m;
+          if(held == -1){
+            m = 0.5;
+          }
+          else{
+            m = 1.0;
+          }
+          //double m = 1.0;
           q = (f_at_qh*ql - m*f_at_ql*qh)/(f_at_qh - m*f_at_ql);
         }
         else{
-          double m = 0.5;
+          double m;
+          if(held == 1){
+            m = 0.5;
+          }
+          else{
+            m = 1.0;
+          }
+          //double m = 1.0;
           q = (m*f_at_qh*ql - f_at_ql*qh)/(m*f_at_qh - f_at_ql);
         }
         //q = 0.5*(qh + ql);
       }
       // Move the bounds according to the sign of fq.
       if(fq < 0){
+        held = -1;
         qh = oldq;
         f_at_qh = fq;
       }
       else{
+        held = 1;
         ql = oldq;
         f_at_ql = fq;
       }
@@ -376,14 +396,15 @@ double IdealSolver::f(double x, double D, double tau, double Ssq){
   //double betainv = (gamma - 1.0)/gamma;
   //return x*(x*(1.0 - betainv) + betainv) + asq - b*sqrt(x*x + asq);
   double a = tau + D;
-  double dis = x*x - Ssq/(a*a);
+  double betasq = Ssq/(a*a);
+  double dis = x*x - betasq;
   if( dis < 1.e-18){
     dis = 1.e-18;
   }
   double xoff = x - 0.5*gamma;
 
   return -xoff*xoff + gamma*gamma/4.0
-     - (gamma-1.0)*Ssq/(a*a) - (gamma-1.0)*D/a*sqrt(dis);
+     - (gamma-1.0)*betasq - (gamma-1.0)*D/a*sqrt(dis);
 }
 // }}}
 
@@ -392,7 +413,8 @@ void IdealSolver::fd(double& fx, double& dfx, double x, double D, double tau, do
   //double betainv = (gamma - 1.0)/gamma;
   //return 2.0*x*(1.0 - betainv) + betainv - b*x/sqrt(x*x+asq);
   double a = tau + D;
-  double dis = x*x - Ssq/(a*a);
+  double betasq = Ssq/(a*a);
+  double dis = x*x - betasq;
   if( dis < 1.e-18){
     dis = 1.e-18;
   }
@@ -400,7 +422,25 @@ void IdealSolver::fd(double& fx, double& dfx, double x, double D, double tau, do
   double xoff = x - 0.5*gamma;
   double coeff = (gamma-1.0)*D/a;
 
-  fx = -xoff*xoff + gamma*gamma/4.0 - (gamma-1.0)*Ssq/(a*a) - coeff*sdis;
+  fx = -xoff*xoff + gamma*gamma/4.0 - (gamma-1.0)*betasq - coeff*sdis;
   dfx = -2.0*xoff - coeff*x/sdis;
+}
+// }}}
+
+// fdd {{{
+void IdealSolver::fdd(double& fx, double& dfx, double& ddfx, double x, double D, double tau, double Ssq){
+  double a = tau + D;
+  double betasq = Ssq/(a*a);
+  double dis = x*x - betasq;
+  if(dis < 1.e-18){
+    dis = 1.e-18;
+  }
+  double sdis = sqrt(dis);
+  double xoff = x - 0.5*gamma;
+  double coeff = (gamma-1.0)*D/a;
+
+  fx = -xoff*xoff + gamma*gamma/4.0 - (gamma-1.0)*betasq - coeff*sdis;
+  dfx = -2.0*xoff - coeff*x/sdis;
+  ddfx = -2 + coeff*betasq/(dis*sdis);
 }
 // }}}
