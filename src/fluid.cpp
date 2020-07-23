@@ -325,6 +325,32 @@ void Fluid::applyBoundaries(){
 }
 // }}}
 
+// doAfterStage {{{
+void Fluid::doAfterStage(){
+   // Retrieve the variables that we need from the available data.
+  double **u = fieldData->getSolverField("Conserved")->getIntermediateData();
+  double **v = (*fieldData)["Primitive"]->getData();
+  double **rhs = fieldData->getSolverField("Conserved")->getCurrentRHS();
+  const Grid *grid = domain->getGrid();
+  unsigned int nx = grid->getSize()[0];
+  unsigned int ny = grid->getSize()[1];
+  const double *x = grid->getPoints()[0];
+  const double *y = grid->getPoints()[1];
+  const unsigned int nb = domain->getGhostPoints();
+
+  for(unsigned int m = 0; m < 5; m++){
+    for(unsigned int i = nb; i < nx - nb; i++){
+      for(unsigned int j = nb; j < ny - nb; j++){
+        unsigned int pp = grid->getIndex(i,j);
+        if(!std::isfinite(u[m][pp])){
+          std::cout << "Non-finite variable!\n";
+        }
+      }
+    }
+  }
+}
+// }}}
+
 // doAfterBoundaries {{{
 void Fluid::doAfterBoundaries(){
   // Retrieve the variables that we need from the available data.
@@ -335,11 +361,13 @@ void Fluid::doAfterBoundaries(){
   unsigned int ny = grid->getSize()[1];
   const double *x = grid->getPoints()[0];
   const double *y = grid->getPoints()[1];
+  const unsigned int nb = domain->getGhostPoints();
 
   double pos[2];
   double upt[NU], vpt[NV];
 
   // We need to get the primitive variables from the conserved.
+  std::set<unsigned int> bad;
   for(unsigned int j = 0; j < ny; j++){
     pos[1] = y[j];
     for(unsigned int i = 0; i < nx; i++){
@@ -363,9 +391,12 @@ void Fluid::doAfterBoundaries(){
       vpt[V_P  ] = v[V_P  ][pp];
 
       bool result = primitive->conToPrimPt(upt, vpt);
-      if(!result){
+      /*if(!result){
         std::cout << "An error occurred during conToPrimPt! Aborting...\n";
         MPI_Abort(MPI_COMM_WORLD,0);
+      }*/
+      if(!result){
+        bad.insert(pp);
       }
 
       // Copy the results back into the data.
@@ -387,7 +418,185 @@ void Fluid::doAfterBoundaries(){
   primitive->resetNewtonAverage();
   #endif
 
+  // If we have bad points, let's try to interpolate to fix them.
+  //interpolateBadPoints(bad);
+
   // Handle axis treatment here.
+}
+// }}}
+
+// interpolateBadPoints {{{
+void Fluid::interpolateBadPoints(std::set<unsigned int>& bad){
+  // Retrieve the variables that we need from the available data.
+  double **u = fieldData->getSolverField("Conserved")->getIntermediateData();
+  double **v = (*fieldData)["Primitive"]->getData();
+  const Grid *grid = domain->getGrid();
+  unsigned int nx = grid->getSize()[0];
+  unsigned int ny = grid->getSize()[1];
+  const double *x = grid->getPoints()[0];
+  const double *y = grid->getPoints()[1];
+  const unsigned int nb = domain->getGhostPoints();
+
+  double pos[2];
+  double upt[NU], vpt[NV];
+  for(unsigned int pp : bad){
+    // Get the physical location of this index.
+    unsigned int i = pp % nx;
+    unsigned int j = (pp - i)/nx;
+    pos[0] = x[i];
+    pos[1] = y[j];
+
+    // Exclude boundary points.
+    if(i < nb || i > nx - nb - 1 || j < nb || j > ny - nb - 1){
+      continue;
+    }
+    
+    // Start looking for available neighbors.
+    // To explain this, points on physical boundaries should
+    // not look interpolate from points inside the ghost
+    // region, as these values are likely derived from the
+    // physical boundary itself. However, points on 
+    // processor boundaries or periodic boundaries are fine,
+    // as the data contained in the padding regions is physical.
+    std::vector<unsigned int> neighbors;
+    // Check the left point.
+    if(i > nb || (i == nb && !domain->hasBoundary(LEFT))){
+      unsigned int left = grid->getIndex(i-1,j);
+      if(bad.find(left) == bad.end()){
+        neighbors.push_back(left);
+      }
+    }
+    // Check the right point.
+    if(i < nx - nb - 1 || (i == nx - nb - 1 && !domain->hasBoundary(RIGHT))){
+      unsigned int right = grid->getIndex(i+1,j);
+      if(bad.find(right) == bad.end()){
+        neighbors.push_back(right);
+      }
+    }
+    // Check the lower point.
+    if(j > nb || (j == nb && (domain->isPeriodic() || !domain->hasBoundary(DOWN)))){
+      unsigned int down = grid->getIndex(i,j-1);
+      if(bad.find(down) == bad.end()){
+        neighbors.push_back(down);
+      }
+    }
+    // Check the upper point.
+    if(j < ny - nb - 1 || (j == ny - nb - 1 && (domain->isPeriodic() || !domain->hasBoundary(UP)))){
+      unsigned int up = grid->getIndex(i,j+1);
+      if(bad.find(up) == bad.end()){
+        neighbors.push_back(up);
+      }
+    }
+
+    // If all the neighbors are bad, there's no use trying, so we 
+    // only interpolate if there's at least one good neighbor.
+    if(neighbors.size() > 0){
+      double vpt[NV], upt[NU];
+      for(unsigned int m = 0; m < NV; m++){
+        vpt[m] = v[m][pp];
+      }
+      // Again, this is kind of flimsy; our "interpolation" is
+      // an average, which is really only a reasonable approximation
+      // if there are four neighbors or two neighbors on opposite
+      // sides.
+      averageNeighbors(vpt, v, neighbors, i, j);
+      metric->updateMetric(pos);
+      primitive->primToConPt(upt, vpt);
+      for(unsigned int m = 0; m < NV; m++){
+        v[m][pp] = vpt[m];
+      }
+      for(unsigned int m = 0; m < NU; m++){
+        u[m][pp] = upt[m];
+        if(!std::isfinite(upt[m])){
+          std::cout << "Non-finite interpolation!\n";
+        }
+      }
+    }
+  }
+}
+// }}}
+
+// averageNeighbors {{{
+double Fluid::averageNeighbors(double *vpt, double *v[], std::vector<unsigned int>& neighbors,
+                               unsigned int ix, unsigned int jy){
+  const Grid* grid = domain->getGrid();
+  unsigned int nx = grid->getSize()[0];
+  unsigned int ny = grid->getSize()[1];
+  const double *x = grid->getPoints()[0];
+  const double *y = grid->getPoints()[1];
+  const double alpha = 1.0;
+  const double beta[3] = {0.0};
+  // We need to interpolate the four-velocity, not the three-velocity.
+  double sum = 0.0;
+  double prev;
+  double err = 0.0;
+  // Use compensated summation.
+  for(unsigned int pp : neighbors){
+    prev = sum;
+    sum += v[V_RHO][pp] + err;
+    err = v[V_RHO][pp] - ((sum - prev) - err);
+  }
+  // FIXME: This is just an average, which isn't technically the correct form of interpolation
+  // to use, particularly if there are less than four available neighbors.
+  vpt[V_RHO] = sum / neighbors.size();
+  sum = 0.0;
+  err = 0.0;
+  for(unsigned int pp : neighbors){
+    prev = sum;
+    sum += v[V_P][pp] + err;
+    err = v[V_P][pp] - ((sum - prev) - err);
+  }
+  vpt[V_P] = sum / neighbors.size();
+  double vsum[3] = {0.0};
+  double vprev[3];
+  double verr[3] = {0.0};
+  double vu[3];
+  double wv[3];
+  double pos[2];
+  for(unsigned int pp : neighbors){
+    vu[0] = v[V_VX][pp];
+    vu[1] = v[V_VY][pp];
+    vu[2] = v[V_VZ][pp];
+    unsigned int l = pp % nx;
+    unsigned int k = (pp - l) / nx;
+    pos[0] = x[l];
+    pos[1] = y[k];
+    metric->updateMetric(pos);
+    double vsq = metric->squareVector(vu);
+    double t1 = vsq - 1.0;
+    if(t1 >= 0){
+      // Check if it's a roundoff error.
+      if(t1 < 1e-15){
+        while(t1 >= 0.0 && t1 < 1e-15){
+          for(unsigned int m = 0; m < 3; m++){
+            vu[m] -= copysign(1.0,vu[m])*5.0e-16;
+          }
+          vsq = metric->squareVector(vu);
+          t1 = vsq - 1.0;
+        }
+      }
+    }
+    double W = sqrt(1.0/(1.0 - vsq));
+
+    wv[0] = W*(vu[0] - beta[0]/alpha);
+    wv[1] = W*(vu[1] - beta[1]/alpha);
+    wv[2] = W*(vu[2] - beta[2]/alpha);
+    for(unsigned int i = 0; i < 3; i++){
+      vprev[i] = vsum[i];
+      vsum[i] += wv[i] + verr[i];
+      verr[i] = wv[i] - ((vsum[i] - vprev[i]) - verr[i]);
+    }
+  }
+  for(unsigned int i = 0; i < 3; i++){
+    wv[i] = vsum[i]/neighbors.size();
+  }
+  pos[0] = x[ix];
+  pos[1] = y[jy];
+  metric->updateMetric(pos);
+  double W = sqrt(1.0 + metric->squareVector(wv));
+  vpt[V_VX] = wv[0]/W;
+  vpt[V_VY] = wv[1]/W;
+  vpt[V_VZ] = wv[2]/W;
 }
 // }}}
 
@@ -585,6 +794,7 @@ void Fluid::applyGaussian(){
   const double *x = grid->getPoints()[0];
   const double *y = grid->getPoints()[1];
   double pos[2];
+  double cpos[2];
   
   double rsq;
 
@@ -597,11 +807,15 @@ void Fluid::applyGaussian(){
   for(unsigned int j = 0; j < ny; j++){
     for(unsigned int i = 0; i < nx; i++){
       unsigned int pp = grid->getIndex(i,j);
-      pos[0] = x[i] - params->getPositionX();
-      pos[1] = y[j] - params->getPositionY();
+      pos[0] = x[i];
+      pos[1] = y[j];
       metric->updateMetric(pos);
       // Calculate r. Right now, assume Cartesian coordinates.
       // FIXME: Generalize this.
+      metric->toCartesianCoordinates(cpos, pos);
+      cpos[0] = cpos[0] - params->getPositionX();
+      cpos[1] = cpos[1] - params->getPositionY();
+      metric->fromCartesianCoordinates(pos, cpos);
       double r = metric->getLength(pos);
       rsq = r*r;
       v[V_RHO][pp] = vacuum + A*exp(-rsq/(sigma*sigma));
@@ -635,12 +849,12 @@ void Fluid::applyShockTube1D(const unsigned int dir){
   const unsigned int otherdir = 1 - dir;
   double pos[2];
   double center = (dir == DIR_X) ? params->getPositionX() : params->getPositionY();
-  double rho_left = 1.0;
-  double rho_right = 1.0;
-  double p_left = 1000.0;
-  double p_right = 0.1;
-  double v_left = 0.0;
-  double v_right = 0.0;
+  double rho_left = params->getShockTubeRhoLeft();
+  double rho_right = params->getShockTubeRhoRight();
+  double p_left = params->getShockTubePLeft();
+  double p_right = params->getShockTubePRight();
+  double v_left = params->getShockTubeVLeft();
+  double v_right = params->getShockTubeVRight();
   double vpt[NV], upt[NU];
 
   for(unsigned int j = 0; j < shp[DIR_Y]; j++){
@@ -660,7 +874,7 @@ void Fluid::applyShockTube1D(const unsigned int dir){
         v[V_RHO][pp] = rho_left;
         v[V_P  ][pp] = p_left;
         v[V_VX + dir][pp] = v_left;
-        v[V_VX + otherdir][pp] = v_right;
+        v[V_VX + otherdir][pp] = 0.0;
         v[V_VZ][pp] = 0.0;
       }
       for(unsigned int m = 0; m < NV; m++){

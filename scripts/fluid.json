@@ -94,7 +94,8 @@
         "type":"enum",
         "value":[
           "UP_OUTFLOW",
-          "UP_WALL"
+          "UP_WALL",
+          "UP_PERIODIC"
         ],
         "default":"UP_OUTFLOW"
       },
@@ -103,7 +104,8 @@
         "type":"enum",
         "value":[
           "DOWN_OUTFLOW",
-          "DOWN_WALL"
+          "DOWN_WALL",
+          "DOWN_PERIODIC"
         ],
         "default":"DOWN_OUTFLOW"
       }
@@ -234,6 +236,48 @@
         "min":1e-6,
         "max":1e10,
         "default":1.0
+      },
+      {
+        "name":"ShockTubeRhoLeft",
+        "type":"double",
+        "min":1e-10,
+        "max":1e10,
+        "default":1.0
+      },
+      {
+        "name":"ShockTubeRhoRight",
+        "type":"double",
+        "min":1e-10,
+        "max":1e10,
+        "default":1.0
+      },
+      {
+        "name":"ShockTubePLeft",
+        "type":"double",
+        "min":1e-15,
+        "max":1e10,
+        "default":1.0
+      },
+      {
+        "name":"ShockTubePRight",
+        "type":"double",
+        "min":1e-15,
+        "max":1e10,
+        "default":1.0
+      },
+      {
+        "name":"ShockTubeVLeft",
+        "type":"double",
+        "min":-1.0,
+        "max":1.0,
+        "default":0.0
+      },
+      {
+        "name":"ShockTubeVRight",
+        "type":"double",
+        "min":-1.0,
+        "max":1.0,
+        "default":0.0
       }
     ]
   }

@@ -11,6 +11,7 @@
 #include <geom/sphericalmetric.h>
 #include <recon/norecon.h>
 #include <recon/minmod.h>
+#include <recon/mp5.h>
 #include <rk4.h>
 #include <cmath>
 #include <fluidioparameters.h>
@@ -94,6 +95,7 @@ int main(int argc, char *argv[]){
   // Assign the right metric to the problem.
   Metric *metric;
   Domain::GridCoordinates coords = Domain::CARTESIAN;
+  double periodic = false;
   double pos[2] = {1.0, 1.0};
   switch(gridpar.getCoordinates()){
     case FluidGridParameters::CARTESIAN:
@@ -105,6 +107,19 @@ int main(int argc, char *argv[]){
     case FluidGridParameters::POLAR:
       metric = new PolarMetric(pos);
       coords = Domain::POLAR;
+      if(gridpar.getBoundaryDown() == FluidGridParameters::DOWN_PERIODIC || 
+         gridpar.getBoundaryUp() == FluidGridParameters::UP_PERIODIC){
+        if(gridpar.getBoundaryDown() != FluidGridParameters::DOWN_PERIODIC ||
+           gridpar.getBoundaryUp() != FluidGridParameters::UP_PERIODIC){
+          if(rank == root){
+            std::cout << "Warning! Periodic boundaries mismatched!\n";
+            std::cout << "Adjusting mismatched boundary.\n";
+          }
+          gridpar.setBoundaryDown(FluidGridParameters::DOWN_PERIODIC);
+          gridpar.setBoundaryUp(FluidGridParameters::UP_PERIODIC);
+        }
+        periodic = true;
+      }
       if(rank == root){
         std::cout << "Polar metric selected.\n";
       }
@@ -118,6 +133,19 @@ int main(int argc, char *argv[]){
     case FluidGridParameters::SPHERICAL:
       metric = new SphericalMetric(pos);
       coords = Domain::POLAR;
+      if(gridpar.getBoundaryDown() == FluidGridParameters::DOWN_PERIODIC || 
+         gridpar.getBoundaryUp() == FluidGridParameters::UP_PERIODIC){
+        if(gridpar.getBoundaryDown() != FluidGridParameters::DOWN_PERIODIC ||
+           gridpar.getBoundaryUp() != FluidGridParameters::UP_PERIODIC){
+          if(rank == root){
+            std::cout << "Warning! Periodic boundaries mismatched!\n";
+            std::cout << "Adjusting mismatched boundary.\n";
+          }
+          gridpar.setBoundaryDown(FluidGridParameters::DOWN_PERIODIC);
+          gridpar.setBoundaryUp(FluidGridParameters::UP_PERIODIC);
+        }
+        periodic = true;
+      }
       if(rank == root){
         std::cout << "Spherical metric selected.\n";
       }
@@ -142,7 +170,7 @@ int main(int argc, char *argv[]){
   unsigned int shp[2] = {(unsigned int)gridpar.getGridSizeX(), 
                          (unsigned int)gridpar.getGridSizeY()};
   // FIXME: Set up periodic conditions for polar coordinates.
-  bool result = domain.buildMesh(shp,coords);
+  bool result = domain.buildMesh(shp,coords,periodic);
 
   // Set up the ODE.
   RK4 rk4 = RK4();
@@ -168,9 +196,9 @@ int main(int argc, char *argv[]){
       }
       break;
     case FluidMethodParameters::MP5:
-      recon = new Minmod();
+      recon = new MP5();
       if(rank == root){
-        std::cout << "MP5 not currently implemented. Reverting to minmod.\n";
+        std::cout << "MP5 reconstruction selected.\n";
       }
       break;
     default:

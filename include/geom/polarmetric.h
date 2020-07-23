@@ -72,6 +72,16 @@ class PolarMetric : public Metric{
     virtual double getLength(const double pos[2]){
       return pos[0];
     }
+
+    virtual void toCartesianCoordinates(double out[2], const double in[2]){
+      out[0] = in[0]*cos(in[1]);
+      out[1] = in[0]*sin(in[1]);
+    }
+    
+    virtual void fromCartesianCoordinates(double out[2], const double in[2]){
+      out[0] = sqrt(in[0]*in[0] + in[1]*in[1]);
+      out[1] = atan2(in[1], in[0]);
+    }
 };
 
  #endif

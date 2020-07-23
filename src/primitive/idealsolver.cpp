@@ -73,10 +73,12 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     upt[U_SZ ] = 0.0;
     upt[U_TAU] = fmax(vacuum,upt[U_TAU]);
     Ssq = 0.0;
+    errors++;
   }
   else{
     if(upt[U_TAU] < vacuum){
       upt[U_TAU] = vacuum;
+      errors++;
     }
     double Ssq_max = (2.0*upt[U_D] + upt[U_TAU])*upt[U_TAU];
     if(Ssq_max < Ssq){
@@ -88,6 +90,7 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
       Sd[1] = upt[U_SY];
       Sd[2] = upt[U_SZ];
       Ssq *= t_min*t_min;
+      errors++;
     }
   }
 
@@ -107,6 +110,7 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
   if (t2 < 0.0){
     std::cout << "primToConPt: Problem with upper bound. t2 = " << t2 << "\n";
     MPI_Abort(MPI_COMM_WORLD,0);
+    errors++;
   }
   double sqrt_t2 = sqrt(t2);
   qf_1 = t1 - sqrt_t2;  // The smaller root of f
@@ -117,6 +121,7 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
   
   if(std::isnan(qg_2)){
     std::cout << "qg_2 is a nan.\n";
+    errors++;
   }
 
   // If the velocity vector is effectively zero, then we have an analytic
@@ -146,6 +151,7 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     }
     // An inequality is violated, so we rescale S.
     else if (beta_sq + (D/a)*(D/a) - 1.0 >= 0.0){
+      errors++;
       //FIXME: This scaling factor is arbitrary. It would be well
       //       to experiment with the value added in.
       rescale_factor1 = 1.0/(sqrt(beta_sq + (D/a)*(D/a)) + 1.e-14);
@@ -197,6 +203,8 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
       printf("  tau = %25.20e \n", tau);
       printf("  Ssq = %25.20e \n", Ssq);
       printf("  beta_sq + (D/a)^2 = %25.20e \n", beta_sq+(D/a)*(D/a));
+      MPI_Abort(MPI_COMM_WORLD, 0);
+      errors++;
     }
 
     // At this point, we should have the two values, namely qg_2 and qf_2,
@@ -316,6 +324,7 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
       printf("  (Ssq+D^2)/(a*a) = %25.20e \n", (Ssq+D*D)/(a*a));
 
       MPI_Abort(MPI_COMM_WORLD,0);
+      errors++;
     }
     #ifdef DEBUG_PRIMITIVE_SOLVER
     totalIterations += count;
@@ -373,9 +382,11 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     upt[U_SX ] = 0.0;
     upt[U_SY ] = 0.0;
     upt[U_SZ ] = 0.0;
+    errors++;
   }
   if(v[V_P] < vacuum){
     v[V_P] = vacuum;
+    errors++;
   }
 
   // Redensitize the variables.

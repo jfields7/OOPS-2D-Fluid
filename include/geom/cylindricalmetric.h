@@ -72,6 +72,16 @@ class CylindricalMetric : public Metric{
     virtual double getLength(const double pos[2]){
       return sqrt(pos[0]*pos[0] + pos[1]*pos[1]);
     }
+
+    virtual void toCartesianCoordinates(double out[2], const double in[2]){
+      out[0] = in[0];
+      out[1] = in[1];
+    }
+
+    virtual void fromCartesianCoordinates(double out[2], const double in[2]){
+      out[0] = in[0];
+      out[1] = in[1];
+    }
 };
 
  #endif

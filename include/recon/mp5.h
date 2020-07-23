@@ -23,7 +23,7 @@ class MP5 : public Recon{
                    (copysign(1.0,w) + copysign(1.0,z)))*fmin(fabs(w),fmin(fabs(x),fmin(fabs(y),fabs(z))));
     }
 
-    inline double MP5(const double am2, const double am1, const double a,
+    inline double doMP5(const double am2, const double am1, const double a,
                       const double ap1, const double ap2,
                       const double anorm, const double mp5_eps, const double mp5_alpha){
       const double vl = (2.0*am2 - 13.0*am1 + 47.0*a + 27.0*ap1 - 3.0*ap2) * 1.0/60.0;
@@ -47,6 +47,7 @@ class MP5 : public Recon{
       }
       return 0;
     }
+    const bool adaptive = true;
   public:
     MP5();
     virtual ~MP5();

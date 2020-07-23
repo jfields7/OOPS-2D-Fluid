@@ -45,6 +45,9 @@ class Fluid : public ODE{
                                const unsigned int j);
 
     void calculateSourceTerms(double *dtu[], double *u[], double *v[], const Grid& grid);
+    void interpolateBadPoints(std::set<unsigned int>& bad);
+    double averageNeighbors(double *vpt, double *v[], std::vector<unsigned int>& neighbors, unsigned int ix,
+                            unsigned int jy);
 
     // Parameters
     FluidICParameters *params;
@@ -56,6 +59,7 @@ class Fluid : public ODE{
 
   protected:
     virtual void rhs(std::shared_ptr<FieldMap>& fieldMap);
+    virtual void doAfterStage();
 
   public:
     Fluid(Domain *d, Solver *s);
@@ -107,6 +111,10 @@ class Fluid : public ODE{
       gridParams = par;
     }
     // }}}
+
+    static inline std::string charToString(char *str){
+      return std::string(str);
+    }
 };
 
 #endif

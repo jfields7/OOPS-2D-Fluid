@@ -121,6 +121,16 @@ class Metric{
       vu[2] = gu[0][2]*vd[0] + gu[1][2]*vd[1] + gu[2][2]*vd[2];
     }
     // }}}
+
+    /**
+     * Transform a position to Cartesian coordinates.
+     */
+    virtual void toCartesianCoordinates(double out[2], const double in[2])=0;
+    
+    /**
+     * Transform a position from Cartesian coordinates.
+     */
+    virtual void fromCartesianCoordinates(double out[2], const double in[2])=0;
 };
 
 #endif

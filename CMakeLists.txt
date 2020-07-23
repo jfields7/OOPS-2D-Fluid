@@ -53,12 +53,14 @@ set(FLUID_INCLUDE_FILES
     include/recon/recon.h
     include/recon/minmod.h
     include/recon/norecon.h
+    include/recon/mp5.h
    )
 set(FLUID_SOURCE_FILES
     src/main.cpp
     src/fluid.cpp
     src/recon/minmod.cpp
     src/recon/norecon.cpp
+    src/recon/mp5.cpp
     src/riemann/riemannsolver.cpp
     src/riemann/hllesolver.cpp
     src/primitive/primitivesolver.cpp
