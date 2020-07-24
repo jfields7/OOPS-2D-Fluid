@@ -17,3 +17,16 @@ void NoRecon::reconstruct(const unsigned int n, const double* const RESTRICT u,
   }
   ur[n-1] = u[n-1];
 }
+
+void NoRecon::reconstructPt(const unsigned int i, const unsigned int n,
+                            const double* const RESTRICT u,
+                            double* const RESTRICT ul, double* const RESTRICT ur){
+  ur[i] = u[i];
+  if(i == 0){
+    ul[i] = u[i];
+    ul[i+1] = u[i];
+  }
+  else{
+    ul[i+1] = u[i];
+  }
+}

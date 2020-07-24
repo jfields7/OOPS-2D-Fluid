@@ -262,6 +262,7 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
       // Halley's method
       fdd(fq, dfq, ddfq, q, D, tau, Ssq);
       q = q - 2.0*fq*dfq/(2.0*dfq*dfq - fq*ddfq);
+      //q = q - 2.0*fq/dfq
       // Check for convergence by ensuring that the new q is
       // still inside the bounds. If not, apply the Illinois
       // variant of the false position method.
@@ -452,6 +453,6 @@ void IdealSolver::fdd(double& fx, double& dfx, double& ddfx, double x, double D,
 
   fx = -xoff*xoff + gamma*gamma/4.0 - (gamma-1.0)*betasq - coeff*sdis;
   dfx = -2.0*xoff - coeff*x/sdis;
-  ddfx = -2 + coeff*betasq/(dis*sdis);
+  ddfx = -2.0 + coeff*betasq/(dis*sdis);
 }
 // }}}

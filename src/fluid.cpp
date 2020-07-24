@@ -15,6 +15,7 @@ Fluid::Fluid(Domain *d, Solver *s) : ODE(5, d, s){
   riemann = nullptr;
   primitive = nullptr;
   recon = nullptr;
+  reconFallback = nullptr;
 
   // Add the variables we need.
   addField("Conserved", 5, true, true, 1);
@@ -652,7 +653,7 @@ void Fluid::reconstruct(double *vl[], double *vr[], double *v1[], double *wv[],
   }
   
   double vacuum = primitive->getVacuum();
-  for(unsigned int i = 0; i < n; i++){
+  /*for(unsigned int i = 0; i < n; i++){
     if(vl[V_RHO][i] < vacuum){
       vl[V_RHO][i] = vacuum;
       vl[V_VX][i] = 0.0;
@@ -670,6 +671,24 @@ void Fluid::reconstruct(double *vl[], double *vr[], double *v1[], double *wv[],
     }
     if(vr[V_P  ][i] < vacuum){
       vr[V_P  ][i] = vacuum;
+    }
+  }*/
+  // If we need to floor the density or the pressure, try a fallback method first.
+  // Keep in mind that vl[i] corresponds to v[i-1], vr[i] corresponds to v[i].
+  // We don't need to apply the floor again because the fallback method must be
+  // monotonic.
+  for(unsigned int i = 0; i < n; i++){
+    if(vl[V_RHO][i] < vacuum){
+      reconFallback->reconstructPt((i > 0) ? i-1 : 0, n, v1[V_RHO], vl[V_RHO], vr[V_RHO]);
+    }
+    if(vr[V_RHO][i] < vacuum){
+      reconFallback->reconstructPt(i, n, v1[V_RHO], vl[V_RHO], vr[V_RHO]);
+    }
+    if(vl[V_P][i] < vacuum){
+      reconFallback->reconstructPt((i > 0) ? i-1 : 0, n, v1[V_P], vl[V_P], vr[V_P]);
+    }
+    if(vr[V_P][i] < vacuum){
+      reconFallback->reconstructPt(i, n, v1[V_P], vl[V_P], vr[V_P]);
     }
   }
 }

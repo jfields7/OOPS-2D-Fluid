@@ -176,33 +176,39 @@ int main(int argc, char *argv[]){
   RK4 rk4 = RK4();
   // Get the reconstruction method.
   Recon *recon;
+  Recon *reconFallback;
   switch(methodpar.getReconstruction()){
     case FluidMethodParameters::NONE:
       recon = new NoRecon();
+      reconFallback = new NoRecon();
       if(rank == root){
         std::cout << "No reconstruction enabled.\n";
       }
       break;
     case FluidMethodParameters::MINMOD:
       recon = new Minmod();
+      reconFallback = new NoRecon();
       if(rank == root){
         std::cout << "Minmod reconstruction selected.\n";
       }
       break;
     case FluidMethodParameters::WENO5:
       recon = new Minmod();
+      reconFallback = new NoRecon();
       if(rank == root){
         std::cout << "WENO5 not currently implemented. Reverting to minmod.\n";
       }
       break;
     case FluidMethodParameters::MP5:
       recon = new MP5();
+      reconFallback = new Minmod();
       if(rank == root){
         std::cout << "MP5 reconstruction selected.\n";
       }
       break;
     default:
       recon = new NoRecon();
+      reconFallback = new NoRecon();
       if(rank == root){
         std::cout << "Unknown reconstruction method requested. Disabling reconstruction.\n";
       }
@@ -262,6 +268,7 @@ int main(int argc, char *argv[]){
   ode.setPrimitiveSolver(primitive);
   ode.setRiemannSolver(riemann);
   ode.setRecon(recon);
+  ode.setReconFallback(reconFallback);
   ode.initData();
   ode.setVariableOutput("Primitive",0,true);
   ode.setVariableOutput("Primitive",1,true);
@@ -307,6 +314,7 @@ int main(int argc, char *argv[]){
 
   delete primitive;
   delete riemann;
+  delete reconFallback;
   delete recon;
   delete metric;
 

@@ -37,6 +37,7 @@ class Fluid : public ODE{
     RiemannSolver *riemann;
     PrimitiveSolver *primitive;
     Recon* recon;
+    Recon* reconFallback;
 
     void reconstruct(double *vl[], double *vr[], double *v1[], double *wv[],
                      const unsigned int dir, const Grid& grid, const unsigned int j);
@@ -96,6 +97,13 @@ class Fluid : public ODE{
     }
     inline void setRecon(Recon *r){
       recon = r;
+    }
+
+    inline Recon* getReconFallback(){
+      return reconFallback;
+    }
+    inline void setReconFallback(Recon *r){
+      reconFallback = r;
     }
 
     inline FluidICParameters* getParameters(){

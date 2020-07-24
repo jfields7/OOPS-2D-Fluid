@@ -46,3 +46,37 @@ void MP5::reconstruct(const unsigned int n, const double* const RESTRICT u,
   #undef Aplus
   #undef Aminus
 }
+
+void MP5::reconstructPt(const unsigned int i, const unsigned int n,
+                        const double* const RESTRICT u,
+                        double* const RESTRICT ul, double* const RESTRICT ur){
+  const double mp5_alpha = 4.0;
+  const double mp5_eps = 1.0e-10;
+  // FIXME: Not currently implemented.
+  if(i == 0){
+    ul[0] = u[0];
+    ul[1] = u[0];
+    ur[0] = u[0];
+  }
+  else if(i == 1){
+    ul[2] = u[1];
+    ur[1] = u[1];
+  }
+  else if(i == n-2){
+    ur[n-2] = u[n-2];
+  }
+  else if(i == n-1){
+    ur[n-1] = u[n-1];
+  }
+  else{
+    if(!adaptive){
+      ul[i+1] = doMP5(u[i-2], u[i-1], u[i], u[i+1], u[i+2], 1.0, mp5_eps, mp5_alpha);
+      ur[i] = doMP5(u[i+2], u[i+1], u[i], u[i-1], u[i-2], 1.0, mp5_eps, mp5_alpha);
+    }
+    else{
+      const double anorm = sqrt(u[i-2]*u[i-2] + u[i-1]*u[i-1] + u[i]*u[i] + u[i+1]*u[i+1] + u[i+2]*u[i+2]);
+      ul[i+1] = doMP5(u[i-2], u[i-1], u[i], u[i+1], u[i+2], 1.0, mp5_eps, mp5_alpha);
+      ur[i] = doMP5(u[i+2], u[i+1], u[i], u[i-1], u[i-2], 1.0, mp5_eps, mp5_alpha);
+    }
+  }
+}

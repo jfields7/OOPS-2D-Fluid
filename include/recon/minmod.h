@@ -24,6 +24,10 @@ class Minmod : public Recon{
 
     virtual void reconstruct(const unsigned int n, const double* const RESTRICT u,
                              double* const RESTRICT ul, double* const RESTRICT ur);
+
+    virtual void reconstructPt(const unsigned int i, const unsigned int n, 
+                               const double* const RESTRICT u,
+                               double* const RESTRICT ul, double* const RESTRICT ur);
 };
 
 #endif

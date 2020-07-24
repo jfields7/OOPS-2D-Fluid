@@ -23,6 +23,10 @@ class Recon{
     virtual void reconstruct(const unsigned int n, const double* const RESTRICT u,
                         double* const RESTRICT ul, double* const RESTRICT ur)=0;
 
+    virtual void reconstructPt(const unsigned int i, const unsigned int n, 
+                               const double* const RESTRICT u,
+                               double* const RESTRICT ul, double* const RESTRICT ur)=0;
+
     inline unsigned int getStencilSize() const{
       return stencil;
     }
