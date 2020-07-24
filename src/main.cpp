@@ -39,6 +39,7 @@ int main(int argc, char *argv[]){
   FluidMethodParameters methodpar;
   FluidICParameters icpar;
 
+  // Reading parameter files {{{
   if(rank == root){
     if(argc < 2){
       std::cout << "Usage: ./Fluid <parameter file>\n";
@@ -85,6 +86,7 @@ int main(int argc, char *argv[]){
       }
     }
   }
+  // }}}
 
   // Broadcast all the parameters.
   iopar.broadcastParameters();
@@ -97,6 +99,7 @@ int main(int argc, char *argv[]){
   Domain::GridCoordinates coords = Domain::CARTESIAN;
   double periodic = false;
   double pos[2] = {1.0, 1.0};
+  // Coordinates {{{
   switch(gridpar.getCoordinates()){
     case FluidGridParameters::CARTESIAN:
       metric = new CartesianMetric();
@@ -156,6 +159,7 @@ int main(int argc, char *argv[]){
       }
       break;
   }
+  // }}}
   // Set up the Domain.
   Domain domain = Domain();
   pair2<double> bounds;
@@ -177,6 +181,7 @@ int main(int argc, char *argv[]){
   // Get the reconstruction method.
   Recon *recon;
   Recon *reconFallback;
+  // Reconstruction {{{
   switch(methodpar.getReconstruction()){
     case FluidMethodParameters::NONE:
       recon = new NoRecon();
@@ -214,8 +219,10 @@ int main(int argc, char *argv[]){
       }
       break;
   }
+  // }}}
   // Get the EOS solver.
   PrimitiveSolver *primitive;
+  // EOS {{{
   switch(methodpar.getEOS()){
     case FluidMethodParameters::FIXED:
       primitive = new IdealSolver(metric);
@@ -245,8 +252,10 @@ int main(int argc, char *argv[]){
       primitive = new IdealSolver(metric);
       ((IdealSolver*)primitive)->setGamma(methodpar.getGamma());
   }
+  // }}}
   // Get the Riemann solver.
   RiemannSolver *riemann;
+  // Riemann Solver {{{
   switch(methodpar.getRiemannSolver()){
     case FluidMethodParameters::HLLE:
       riemann = new HLLESolver(primitive,metric);
@@ -261,6 +270,9 @@ int main(int argc, char *argv[]){
       riemann = new HLLESolver(primitive,metric);
       break;
   }
+  // }}}
+
+  // ODE setup {{{
   Fluid ode = Fluid(&domain, &rk4);
   ode.setMetric(metric);
   ode.setParameters(&icpar);
@@ -280,6 +292,7 @@ int main(int argc, char *argv[]){
   ode.setVariableOutput("Conserved",2,true);
   ode.setVariableOutput("Conserved",3,true);
   ode.setVariableOutput("Conserved",4,true);
+  // }}}
 
   double ti = 0;
   double tf = gridpar.getTime();
@@ -312,6 +325,7 @@ int main(int argc, char *argv[]){
     }
   }
 
+  // Cleanup {{{
   delete primitive;
   delete riemann;
   delete reconFallback;
@@ -321,5 +335,6 @@ int main(int argc, char *argv[]){
   if(comm->cleanup() != SUCCESS){
     std::cout << "There was an error cleaning up MPICommunicator.\n";
   }
+  // }}}
   return 0;
 }
