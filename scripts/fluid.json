@@ -185,6 +185,20 @@
         "min":1.00000001,
         "max":1.99999999,
         "default":1.66666667
+      },
+      {
+        "name":"Vacuum",
+        "type":"double",
+        "min":0.0,
+        "max":1.0,
+        "default":1e-10
+      },
+      {
+        "name":"VacuumTau",
+        "type":"double",
+        "min":0.0,
+        "max":1.0,
+        "default":1e-15
       }
     ]
   },

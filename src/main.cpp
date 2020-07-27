@@ -252,6 +252,8 @@ int main(int argc, char *argv[]){
       primitive = new IdealSolver(metric);
       ((IdealSolver*)primitive)->setGamma(methodpar.getGamma());
   }
+  primitive->setVacuum(methodpar.getVacuum());
+  primitive->setVacuumTau(methodpar.getVacuumTau());
   // }}}
   // Get the Riemann solver.
   RiemannSolver *riemann;

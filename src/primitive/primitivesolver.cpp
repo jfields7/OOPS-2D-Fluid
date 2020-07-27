@@ -7,6 +7,7 @@
 PrimitiveSolver::PrimitiveSolver(Metric* m){
   metric = m;
   vacuum = 1e-10;
+  vacuum_tau = 1e-15;
 }
 // }}}
 
@@ -30,9 +31,9 @@ void PrimitiveSolver::primToConPt(double *u, double *v){
     std::cout << "primToConPt: rho < vacuum. rho=" << rho << std::endl;
     rho = vacuum;
   }
-  if(P < vacuum){
+  if(P < vacuum_tau){
     std::cout << "primToConPt: P < vacuum. P=" << rho << std::endl;
-    P = vacuum;
+    P = vacuum_tau;
   }
 
   double vu[3], vd[3];

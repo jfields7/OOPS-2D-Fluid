@@ -37,6 +37,7 @@ class PrimitiveSolver{
     Metric* metric;
 
     double vacuum;
+    double vacuum_tau;
 
     #ifdef DEBUG_PRIMITIVE_SOLVER
     unsigned int totalIterations;
@@ -81,6 +82,13 @@ class PrimitiveSolver{
     }
     inline void setVacuum(double v){
       vacuum = v;
+    }
+
+    inline double getVacuumTau() const{
+      return vacuum_tau;
+    }
+    inline void setVacuumTau(double v){
+      vacuum_tau = v;
     }
 
     #ifdef DEBUG_PRIMITIVE_SOLVER

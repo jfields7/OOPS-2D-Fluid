@@ -71,13 +71,13 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     upt[U_SX ] = 0.0;
     upt[U_SY ] = 0.0;
     upt[U_SZ ] = 0.0;
-    upt[U_TAU] = fmax(vacuum,upt[U_TAU]);
+    upt[U_TAU] = fmax(vacuum_tau,upt[U_TAU]);
     Ssq = 0.0;
     errors++;
   }
   else{
-    if(upt[U_TAU] < vacuum){
-      upt[U_TAU] = vacuum;
+    if(upt[U_TAU] < vacuum_tau){
+      upt[U_TAU] = vacuum_tau;
       errors++;
     }
     double Ssq_max = (2.0*upt[U_D] + upt[U_TAU])*upt[U_TAU];
@@ -385,7 +385,7 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     upt[U_SZ ] = 0.0;
     errors++;
   }
-  if(v[V_P] < vacuum){
+  if(v[V_P] < vacuum_tau){
     v[V_P] = vacuum;
     errors++;
   }

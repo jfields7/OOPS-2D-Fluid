@@ -662,6 +662,7 @@ void Fluid::reconstruct(double *vl[], double *vr[], double *v1[], double *wv[],
   }
   
   double vacuum = primitive->getVacuum();
+  double vacuum_tau = primitive->getVacuumTau();
   /*for(unsigned int i = 0; i < n; i++){
     if(vl[V_RHO][i] < vacuum){
       vl[V_RHO][i] = vacuum;
@@ -693,10 +694,10 @@ void Fluid::reconstruct(double *vl[], double *vr[], double *v1[], double *wv[],
     if(vr[V_RHO][i] < vacuum){
       reconFallback->reconstructPt(i, n, v1[V_RHO], vl[V_RHO], vr[V_RHO]);
     }
-    if(vl[V_P][i] < vacuum){
+    if(vl[V_P][i] < vacuum_tau){
       reconFallback->reconstructPt((i > 0) ? i-1 : 0, n, v1[V_P], vl[V_P], vr[V_P]);
     }
-    if(vr[V_P][i] < vacuum){
+    if(vr[V_P][i] < vacuum_tau){
       reconFallback->reconstructPt(i, n, v1[V_P], vl[V_P], vr[V_P]);
     }
   }
@@ -831,6 +832,7 @@ void Fluid::applyGaussian(){
   double sigma = params->getGaussianSigma();
   double gamma = 5.0/3.0;
   double vacuum = primitive->getVacuum();
+  double vacuum_tau = primitive->getVacuumTau();
   double vpt[NV], upt[NU];
   for(unsigned int j = 0; j < ny; j++){
     for(unsigned int i = 0; i < nx; i++){
@@ -850,7 +852,7 @@ void Fluid::applyGaussian(){
       v[V_VX ][pp] = 0.0;
       v[V_VY ][pp] = 0.0;
       v[V_VZ ][pp] = 0.0;
-      v[V_P  ][pp] = vacuum + kappa*pow(v[V_RHO][pp], gamma);
+      v[V_P  ][pp] = vacuum_tau + kappa*pow(v[V_RHO][pp], gamma);
 
       for(unsigned int m = 0; m < NV; m++){
         vpt[m] = v[m][pp];
