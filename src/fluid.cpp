@@ -420,7 +420,7 @@ void Fluid::doAfterBoundaries(){
   #endif
 
   // If we have bad points, let's try to interpolate to fix them.
-  //interpolateBadPoints(bad);
+  interpolateBadPoints(bad);
 
   // Handle axis treatment here.
 }
@@ -461,32 +461,43 @@ void Fluid::interpolateBadPoints(std::set<unsigned int>& bad){
     // as the data contained in the padding regions is physical.
     std::vector<unsigned int> neighbors;
     // Check the left point.
+    unsigned int left = grid->getIndex(i-1,j);
+    bool interpx = true;
     if(i > nb || (i == nb && !domain->hasBoundary(LEFT))){
-      unsigned int left = grid->getIndex(i-1,j);
-      if(bad.find(left) == bad.end()){
-        neighbors.push_back(left);
+      if(bad.find(left) != bad.end()){
+        interpx = false;
       }
     }
     // Check the right point.
+    unsigned int right = grid->getIndex(i+1,j);
     if(i < nx - nb - 1 || (i == nx - nb - 1 && !domain->hasBoundary(RIGHT))){
-      unsigned int right = grid->getIndex(i+1,j);
-      if(bad.find(right) == bad.end()){
-        neighbors.push_back(right);
+      if(bad.find(right) != bad.end()){
+        interpx = false;
       }
     }
     // Check the lower point.
+    unsigned int down = grid->getIndex(i,j-1);
+    bool interpy = true;
     if(j > nb || (j == nb && (domain->isPeriodic() || !domain->hasBoundary(DOWN)))){
-      unsigned int down = grid->getIndex(i,j-1);
-      if(bad.find(down) == bad.end()){
-        neighbors.push_back(down);
+      if(bad.find(down) != bad.end()){
+        interpy = false;
       }
     }
     // Check the upper point.
+    unsigned int up = grid->getIndex(i,j+1);
     if(j < ny - nb - 1 || (j == ny - nb - 1 && (domain->isPeriodic() || !domain->hasBoundary(UP)))){
-      unsigned int up = grid->getIndex(i,j+1);
-      if(bad.find(up) == bad.end()){
-        neighbors.push_back(up);
+      if(bad.find(up) != bad.end()){
+        interpy = false;
       }
+    }
+
+    if(interpx){
+      neighbors.push_back(left);
+      neighbors.push_back(right);
+    }
+    if(interpy){
+      neighbors.push_back(down);
+      neighbors.push_back(up);
     }
 
     // If all the neighbors are bad, there's no use trying, so we 
@@ -537,8 +548,6 @@ double Fluid::averageNeighbors(double *vpt, double *v[], std::vector<unsigned in
     sum += v[V_RHO][pp] + err;
     err = v[V_RHO][pp] - ((sum - prev) - err);
   }
-  // FIXME: This is just an average, which isn't technically the correct form of interpolation
-  // to use, particularly if there are less than four available neighbors.
   vpt[V_RHO] = sum / neighbors.size();
   sum = 0.0;
   err = 0.0;
