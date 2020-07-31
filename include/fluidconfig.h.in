@@ -1,2 +1,3 @@
 // The configured options and settings for the fluid solver
 #cmakedefine DEBUG_PRIMITIVE_SOLVER
+#cmakedefine DEBUG_RHS

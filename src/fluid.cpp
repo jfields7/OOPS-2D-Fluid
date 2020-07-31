@@ -188,6 +188,30 @@ void Fluid::rhs(std::shared_ptr<FieldMap>& fieldMap){
 
   // Apply the source terms.
   calculateSourceTerms(dtu, u, v, grid);
+
+  #ifdef DEBUG_RHS
+  // Print out the L2 norms of the righthand side.
+  MPICommunicator *comm = MPICommunicator::getInstance();
+  double norms[NU];
+  double normsu[NU];
+  for(unsigned int m = 0; m < NU; m++){
+    norms[m] = calcL2Norm(dtu[m]);
+    normsu[m] = calcL2Norm(u[m]);
+  }
+  if(comm->getRank() == comm->getRootRank()){
+    std::cout << "Stage " << conservedVars->getCurrentStage() << " L2 Norms: \n";
+    std::cout << "  rhs[D  ] = " << norms[U_D] << "\n";
+    std::cout << "  rhs[SX ] = " << norms[U_SX] << "\n";
+    std::cout << "  rhs[SY ] = " << norms[U_SY] << "\n";
+    std::cout << "  rhs[SZ ] = " << norms[U_SZ] << "\n";
+    std::cout << "  rhs[TAU] = " << norms[U_TAU] << "\n";
+    std::cout << "  u[D  ] = " << normsu[U_D] << "\n";
+    std::cout << "  u[SX ] = " << normsu[U_SX] << "\n";
+    std::cout << "  u[SY ] = " << normsu[U_SY] << "\n";
+    std::cout << "  u[SZ ] = " << normsu[U_SZ] << "\n";
+    std::cout << "  u[TAU] = " << normsu[U_TAU] << "\n";
+  }
+  #endif
 }
 // }}}
 

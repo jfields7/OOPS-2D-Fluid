@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(Fluid)
 
 option(DEBUG_PRIMITIVE_SOLVER "Print debug messages in the primitive solver." OFF)
+option(DEBUG_RHS "Print debug messages in the righthand side." OFF)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/fluidconfig.h.in 
                ${CMAKE_CURRENT_SOURCE_DIR}/include/fluidconfig.h)
 
