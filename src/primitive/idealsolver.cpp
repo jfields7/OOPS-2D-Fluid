@@ -32,7 +32,7 @@ double IdealSolver::calcSoundSpeed(double rho, double p){
   double y, cs;
 
   if(rho*factor < p){
-    y = (gamma - 1.0*rho/(gamma*p));
+    y = (gamma - 1.0)*rho/(gamma*p);
     cs = sqrt(gamma - 1.0)*(1.0 + (-0.5+(0.375+(-0.3125+0.2734375*y)*y)*y)*y);
   }
   else{
@@ -340,10 +340,12 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
     // can now get the remaining primitive variables.  Start with the velocity
     // squared: v^2.
     double vsq = Ssq / (q*q);
+    double W = q/sqrt(q*q - Ssq);
     #ifdef DEBUG_PRIMITIVE_SOLVER
-    if(vsq >= 1.0){
+    if(vsq >= 1.0 || W < 1.0){
       printf("primToConPt: Unphysical velocity.\n");
       printf("  vsq = %g\n",vsq);
+      printf("  W   = %g\n",W);
     }
     #endif
     // We have the "down" components of S; now get the "up" components.
@@ -352,7 +354,9 @@ bool IdealSolver::conToPrimPt(double *u, double *v){
 
     // Now calculate rho, pressure, and the "up" components of v^i.
     v[V_RHO] = D*sqrt(1.0 - vsq);
+    //v[V_RHO] = D/W;
     v[V_P  ] = (gamma-1.0)/gamma*(q*(1.0-vsq) - v[V_RHO]);
+    //v[V_P  ] = q - tau - D;
     v[V_VX ] = Su[0] / q;
     v[V_VY ] = Su[1] / q;
     v[V_VZ ] = Su[2] / q;
