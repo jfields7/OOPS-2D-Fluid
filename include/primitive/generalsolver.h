@@ -13,7 +13,7 @@
  *              A specific EOS should inherit from this class
  *              and use its primitive solver.
  *
- * Reference:   Galeazzi et al., Phys. Rev D 88, 064009 (2013).
+ * Reference:   Kastaun et al., Phys. Rev. D 103, 023018 (2021)
  *
  **************************************************************/
 
@@ -24,6 +24,9 @@ class GeneralSolver : public PrimitiveSolver {
 
     double maxRho;
     double maxEps;
+
+    double minRho;
+    double minEps;
   public:
     GeneralSolver(Metric* m);
     virtual ~GeneralSolver();
@@ -53,10 +56,26 @@ class GeneralSolver : public PrimitiveSolver {
       maxRho = rho;
     }
 
-    virtual double calcP(double rho, double eps) = 0;
-    virtual double calcEps(double rho, double P) = 0;
+    inline double getMinRho() const{
+      return minRho;
+    }
+    inline void setMaxRho(double rho){
+      minRho = rho;
+    }
 
-    double calcA(double rho, double eps);
+    inline double getMaxEps() const{
+      return maxEps;
+    }
+    inline void setMaxEps(double eps){
+      maxEps = eps;
+    }
+
+    inline double getMinEps() const{
+      return minEps;
+    }
+    inline void setMinEps(double eps){
+      minEps = eps;
+    }
 };
 
 #endif

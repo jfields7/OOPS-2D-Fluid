@@ -22,23 +22,12 @@ GeneralSolver::~GeneralSolver(){
 // }}}
 
 // {{{
-double GeneralSolver::calcH(double rho, double P){
-  return rho*(1.0 + calcEps(rho, P)) + P;
-}
-// }}}
-
-// {{{
-double GeneralSolver::calcA(double rho, double eps){
-  return calcP(rho, eps)/(rho
-}
-// }}}
-
-// {{{
 /**
  * The method used for the primitive solver here is based on
  * that present in
- * Galeazzi et al., Phys. Rev. D 88, 064009 (2013).
- * It should work for a generic SRHD equation of state.
+ * Kastaun et al., Phys. Rev. D 103, 023018 (2021)
+ * It's intended for MHD, but it should work for the special
+ * relativistic limit, too.
  */
 bool GeneralSolver::conToPrimPt(double *u, double *v){
   const double VELOCITY_FACTOR = 0.9999;
@@ -55,11 +44,17 @@ bool GeneralSolver::conToPrimPt(double *u, double *v){
   upt[U_TAU] = isdetg * u[U_TAU];
 
   // Some utility variables for calculation.
+  double D = upt[U_D];
+  double tau = upt[U_TAU];
   double Sd[3];
   Sd[0] = upt[U_SX];
   Sd[1] = upt[U_SY];
   Sd[2] = upt[U_SZ];
   double Ssq = metric->squareForm(Sd);
+  // Some variables that show up in neutron star MHD calculations
+  // but aren't important for us.
+  double Ye = 0;
+  double Bu[3] = {0.0, 0.0, 0.0};
 
   // Apply the floor to the undensitized variables
   if (upt[U_D] < vacuum){
@@ -76,25 +71,49 @@ bool GeneralSolver::conToPrimPt(double *u, double *v){
     v[V_VZ ] = 0.0;
   }
 
-  double q = upt[U_TAU]/upt[U_D];
-  double r = sqrt(Ssq)/upt[U_D];
-  double k = r/(1.0 + q);
+  // Define some auxiliary quantities
+  // Note that we don't have a magnetic field, so B = 0.
+  // Similarly, we don't have any additional chemical or
+  // nuclear species, so Y_i = 0.
+  double sqrtD = sqrt(D);
+  double bu[3] = {Bu[0]/sqrtD, Bu[1]/sqrtD, Bu[2]/sqrtD};
+  double rl[3] = {Sd[0]/D, Sd[1]/D, Sd[2]/D};
 
-  // Check some physical bounds.
-  // If q < 0, we have a negative energy density.
-  if(q < 0){
-    // Set q = 0, but leave k and D constant. This effectively rescales
-    // r and thus Ssq.
-    q = 0;
-    r = k;
-    Ssq = r*upt[U_D];
-  }
-  double k_max = 2.0*VELOCITY_FACTOR/(1.0 + VELOCITY_FACTOR*VELOCITY_FACTOR);
-  // If we exceed the maximum allowed k, rescale k and the momentum density.
-  if(k >= k_max){
-    k = k_max;
-    r = k_max*(1.0 + q);
-    Ssq = r*upt[U_D];
-  }
+  double ru[3] = metric->raiseForm(rl);
+  double rsqr  = metric->squareForm(ru);
+  double rb    = rl[0]*bu[0] + rl[1]*bu[1] + rl[2]*bu[2];
+  double rbsqr = rb*rb;
+  double bsqr  = metric->squareVector(bu);
+  double q     = tau/D;
+  double Ye0  = Ye/D;
+
+  /** This is stuff that doesn't have a purpose in this
+      code, but will be needed in Athena++.
+  // Kastaun's code complains if we have NaNs. We won't
+  // do that here because there shouldn't be NaNs coming in.
+  // But it's not a bad idea to check.
+
+  // Check if the magnetic field is too large. Complain if it is.
+  // (Obviously that won't be a problem here.)
+
+  // Restrict the range of Ye or other chemical species.
+  **/
+
+
+  // Construct the bracket.
+  
+
+  // Check for bizarre cases, like rho being too small or too large.
+  // This is something that could be handled by a special policy object.
+
+  // Do the root solve.
+
+  // Complain if we couldn't find a root.
+
+  // Apply the floor?
+
+  // Retrieve the primitive variables.
+
+  // Correct the conserved variables as needed.
 }
 // }}}
