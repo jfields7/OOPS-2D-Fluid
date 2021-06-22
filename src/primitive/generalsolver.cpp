@@ -3,6 +3,7 @@
 #include <geom/metric.h>
 #include <iostream>
 #include <mpicommunicator.h>
+#include <numtoolsroot.h>
 
 // Constructor {{{
 GeneralSolver::GeneralSolver(Metric* m) : PrimitiveSolver(m){
@@ -21,7 +22,7 @@ GeneralSolver::~GeneralSolver(){
 }
 // }}}
 
-// {{{
+// conToPrimPt {{{
 /**
  * The method used for the primitive solver here is based on
  * that present in
@@ -80,10 +81,10 @@ bool GeneralSolver::conToPrimPt(double *u, double *v){
   double rl[3] = {Sd[0]/D, Sd[1]/D, Sd[2]/D};
 
   double ru[3] = metric->raiseForm(rl);
-  double rsqr  = metric->squareForm(ru);
+  double rsq  = metric->squareForm(ru);
   double rb    = rl[0]*bu[0] + rl[1]*bu[1] + rl[2]*bu[2];
-  double rbsqr = rb*rb;
-  double bsqr  = metric->squareVector(bu);
+  double rbsq = rb*rb;
+  double bsq  = metric->squareVector(bu);
   double q     = tau/D;
   double Ye0  = Ye/D;
 
@@ -101,12 +102,62 @@ bool GeneralSolver::conToPrimPt(double *u, double *v){
 
 
   // Construct the bracket.
+  // This solver looks for a solution in terms of mu = 1/Wh. The lower
+  // bound for mu is trivially 0, corresponding to either a high-energy,
+  // high-pressure solution or an ultrarelativistic solution.
+  // If r < minH, where minH is the smallest enthalpy in the system, the 
+  // upper bound is just 1/minH. This corresponds to the Newtonian limit.
+  // If r > minH, we can get a tighter bound by finding the root to the
+  // auxiliary function, fa(mu) = mu*sqrt(minH^2 + rbar(mu)^2) - 1.
+  // It's not important that we know the upper-bound super precisely,
+  // so we're satisfied with a fixed tolerance of 1e-3 and 10 iterations.
+  // However, this upper root is important because there is a kink beyond
+  // it that makes the main root finding more difficult.
+  double mul = 0.0;
+  double muh = 1.0/minH;
+  if(rsq > minH*minH){
+    double btol = 1e-3;
+    double max_iter = 10;
+    double count = 0;
+    double f;
+    do {
+      double x = 1.0/(1.0 + muh*bsq);
+      double xsq = x*x;
+      double rbarsq = rsq*xsq + muh*x*(1.0 + x)*rbsq;
+      // The function fa is well behaved, so we can solve for it using a
+      // derivative-based solution. For computational efficiency, we
+      // need to calculate some extra quantities for both f and the
+      // derivative df.
+      double dis = sqrt(h0*h0 + rbarsq);
+      double dx = -bsqr*xsq;
+      double drbarsq = rbsq*x*(1.0 + x) + (muh*rbsq + 2.0*(muh*rbsq + rsq)*x)*dx;
+      f = muh*dis - 1.0;
+      double df = dis + mu*drbarsq/(2.0*dis);
+      muh = muh - f/df;
+      count++;
+    }
+    while (fabs(f) > btol && count < max_iter);
+    // Throw an error if we haven't converged.
+    if (fabs(f) > btol){
+      errors++;
+      printf("C2P: Having difficulty calculating the upper root.");
+    }
+  }
   
 
-  // Check for bizarre cases, like rho being too small or too large.
-  // This is something that could be handled by a special policy object.
+  // Kastaun checks for some nonphysical cases using the bracketed root afterward,
+  // though I'm not sure why. I see no reason why we should expect the primitive
+  // variables to have a physical state after bracketing, so it just seems like
+  // wasted computational effort to me.
 
   // Do the root solve.
+  // Again, we're solving for mu = 1/Wh. The actual master function used for the root
+  // solve is fairly complicated. For testing purposes, it is written out explicitly
+  // here, but it would be wise to wrap it up in a few functions for the sake of
+  // appearances.
+  // The root solve here is performed with the Illinois variant of false position,
+  // but it would be good to experiment with different solvers.
+
 
   // Complain if we couldn't find a root.
 

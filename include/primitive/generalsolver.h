@@ -27,6 +27,8 @@ class GeneralSolver : public PrimitiveSolver {
 
     double minRho;
     double minEps;
+
+    double minH;
   public:
     GeneralSolver(Metric* m);
     virtual ~GeneralSolver();
@@ -75,6 +77,13 @@ class GeneralSolver : public PrimitiveSolver {
     }
     inline void setMinEps(double eps){
       minEps = eps;
+    }
+
+    inline double getMinH() const{
+      return minH;
+    }
+    inline void setMinH(double h){
+      minH = h;
     }
 };
 

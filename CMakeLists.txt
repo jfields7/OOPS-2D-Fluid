@@ -6,6 +6,9 @@ option(DEBUG_RHS "Print debug messages in the righthand side." OFF)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/fluidconfig.h.in 
                ${CMAKE_CURRENT_SOURCE_DIR}/include/fluidconfig.h)
 
+# Add the NumTools package
+#find_package(NumTools REQUIRED)
+
 # Generate the Parameters and ParamParser files.
 set(PARAM_SRC 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fluidgridparser.cpp
@@ -73,4 +76,4 @@ set(SOURCE_FILES ${FLUID_INCLUDE_FILES} ${FLUID_SOURCE_FILES} ${PARAM_INC} ${PAR
 add_executable(Fluid ${SOURCE_FILES})
 target_include_directories(Fluid PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(Fluid PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(Fluid oops2d ${EXTRA_LIBS})
+target_link_libraries(Fluid oops2d NumTools ${EXTRA_LIBS})
